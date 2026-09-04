@@ -1,8 +1,6 @@
 [org 0x7c00]
 [bits 16]
 
-KERNEL_LOAD_SEG EQU 0x1000
-
 start:
     cli
     xor ax, ax
@@ -11,107 +9,55 @@ start:
     mov ss, ax
     mov sp, 0x7c00
 
-    ; BIOS puts boot drive number in DL - save it
-    mov [boot_drive], dl
-
-    ; Probe for LBA extensions (INT 13h AH=41h)
-    mov ah, 0x41
-    mov bx, 0x55AA
-    mov dl, [boot_drive]
-    int 0x13
-    jc  .use_chs
-    cmp bx, 0xAA55
-    jne .use_chs
-
-    ; ---- LBA path: single call reads 128 sectors ----
-    mov ah, 0x42
-    mov dl, [boot_drive]
-    mov si, dap
-    int 0x13
-    jnc .done
-    jmp disk_error
-
-.use_chs:
-    ; ---- CHS fallback: 8 calls x 16 sectors = 128 sectors ----
-    mov ax, KERNEL_LOAD_SEG
-    mov es, ax
-    xor bx, bx
-    mov [chs_sec],  byte 2       ; first sector (1-based)
-    mov [chs_iter], byte 8       ; number of iterations
-
-.chs_loop:
+    ; Read 32 sectors from disk (16 KB) starting at sector 2 into 0x1000:0x0000 = 0x10000
     mov ah, 0x02
-    mov al, 16                   ; 16 sectors per call
-    mov ch, 0
-    mov dh, 0
-    mov cl, [chs_sec]
-    mov dl, [boot_drive]
+    mov al, 32          ; 32 sectors (well within one track, kernel is only 26 sectors)
+    mov ch, 0           ; cylinder 0
+    mov cl, 2           ; sector 2 (boot sector is sector 1)
+    mov dh, 0           ; head 0
+    ; dl = boot drive, BIOS already sets this on entry - do NOT clobber it
+    mov bx, 0x1000
+    mov es, bx
+    xor bx, bx          ; ES:BX = 0x1000:0x0000 = physical 0x10000
     int 0x13
-    jc  disk_error
+    jc disk_error
 
-    add bx, 0x2000               ; advance buffer 8 KB
-    jnc .no_wrap
-    ; BX wrapped: advance segment by 0x800 (= 8 KB / 16)
-    mov ax, es
-    add ax, 0x0800
-    mov es, ax
-.no_wrap:
-    add byte [chs_sec], 16
-    dec byte [chs_iter]
-    jnz .chs_loop
-
-.done:
-    ; Enter 32-bit protected mode
+    ; Load GDT and enter 32-bit protected mode
     lgdt [gdt_descriptor]
     mov eax, cr0
     or  eax, 1
     mov cr0, eax
-    jmp 0x08:init_pm
+    jmp 0x08:protected_mode
 
 disk_error:
-    mov ah, 0x0E
-    mov al, 'E'
-    int 0x10
     jmp $
 
-; ---- variables (in 16-bit data area of boot sector) ----
-boot_drive: db 0
-chs_sec:    db 0
-chs_iter:   db 0
-
-align 4
-dap:
-    db 0x10             ; DAP structure size
-    db 0x00             ; reserved
-    dw 128              ; sectors to read
-    dw 0x0000           ; destination offset
-    dw KERNEL_LOAD_SEG  ; destination segment  -> physical 0x10000
-    dq 1                ; LBA start (sector 1 = physical sector 2)
-
 [bits 32]
-init_pm:
+protected_mode:
+    ; Set all data segments to the flat 32-bit data descriptor
     mov ax, 0x10
     mov ds, ax
     mov ss, ax
     mov es, ax
     mov fs, ax
     mov gs, ax
-    mov esp, 0x90000    ; safe stack, below BIOS region (0xA0000)
+    mov esp, 0x90000    ; stack below BIOS region (0xA0000), above kernel (~0x15000)
 
-    call 0x10000        ; jump to kernel_main
+    call 0x10000        ; call kernel_main at physical address 0x10000
 
-    jmp $
+    cli
+    hlt                 ; should never reach here
 
 ; ---- GDT ----
 gdt_start:
-    dq 0x0000000000000000        ; null
-    dq 0x00cf9a000000ffff        ; 32-bit code
-    dq 0x00cf92000000ffff        ; 32-bit data
+    dq 0x0000000000000000       ; null descriptor
+    dq 0x00cf9a000000ffff       ; 0x08: 32-bit code, base=0, limit=4GB, R/X
+    dq 0x00cf92000000ffff       ; 0x10: 32-bit data, base=0, limit=4GB, R/W
 gdt_end:
 
 gdt_descriptor:
-    dw gdt_end - gdt_start - 1
-    dd gdt_start
+    dw gdt_end - gdt_start - 1  ; limit
+    dd gdt_start                 ; base (physical address of gdt_start)
 
 times 510-($-$$) db 0
 dw 0xAA55

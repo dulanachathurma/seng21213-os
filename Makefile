@@ -78,6 +78,10 @@ $(BUILD)/syscall.o: kernel/syscall.c
 	@mkdir -p $(BUILD)
 	@$(CC) $(CFLAGS) -Iinclude -c kernel/syscall.c -o $@
 
+$(BUILD)/entry.o: boot/entry.asm
+	@mkdir -p $(BUILD)
+	@$(AS) $(ASFLAGS_ELF) boot/entry.asm -o $@
+
 $(BUILD)/switch.o: boot/switch.asm
 	@mkdir -p $(BUILD)
 	@$(AS) $(ASFLAGS_ELF) boot/switch.asm -o $@
@@ -87,6 +91,7 @@ $(BUILD)/isr.o: boot/isr.asm
 	@$(AS) $(ASFLAGS_ELF) boot/isr.asm -o $@
 
 KERN_OBJS = \
+	$(BUILD)/entry.o \
 	$(BUILD)/kernel.o \
 	$(BUILD)/shell.o \
 	$(BUILD)/string.o \
@@ -119,7 +124,11 @@ seng21213.img: $(BUILD)/boot/boot.bin $(BUILD)/kernel.bin
 	@echo "Disk image built successfully."
 
 run: seng21213.img
-	qemu-system-i386 -drive format=raw,file=seng21213.img
+	qemu-system-i386 \
+		-drive format=raw,file=seng21213.img \
+		-m 32M \
+		-display cocoa,zoom-to-fit=on \
+		-vga std
 
 clean:
 	rm -rf $(BUILD) seng21213.img
