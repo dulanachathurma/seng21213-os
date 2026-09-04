@@ -11,16 +11,9 @@ start:
     mov ss, ax
     mov sp, 0x7c00
 
-    ; Load kernel from disk using BIOS INT 0x13
-    mov ah, 0x02        ; BIOS read sector function
-    mov al, 32          ; Number of sectors to read (covers kernel size)
-    mov ch, 0           ; Cylinder 0
-    mov dh, 0           ; Head 0
-    mov cl, 2           ; Sector 2 (sector 1 is boot sector)
-    mov bx, KERNEL_LOAD_SEG
-    mov es, bx
-    xor bx, bx          ; ES:BX = 0x1000:0x0000 -> physical address 0x10000
-
+    ; Load kernel from disk using BIOS INT 0x13 AH=0x42 (LBA Extended Read)
+    mov ah, 0x42
+    mov si, dap
     int 0x13
     jc disk_error
 
@@ -35,6 +28,15 @@ start:
 disk_error:
     jmp $
 
+align 4
+dap:
+    db 0x10             ; Size of DAP (16 bytes)
+    db 0                ; Unused
+    dw 128              ; Number of sectors to read
+    dw 0x0000           ; Buffer offset
+    dw KERNEL_LOAD_SEG  ; Buffer segment
+    dq 1                ; Starting LBA (Sector 1, 0-indexed = physical sector 2)
+
 [bits 32]
 init_pm:
     mov ax, 0x10
@@ -43,7 +45,7 @@ init_pm:
     mov es, ax
     mov fs, ax
     mov gs, ax
-    mov esp, 0x1FFFF0
+    mov esp, 0x1FFFF0   ; Safely above 1MB RAM disk in BSS
 
     ; Jump to kernel entry point at 0x10000
     call 0x10000
