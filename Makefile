@@ -115,6 +115,7 @@ $(BUILD)/kernel.bin: $(BUILD)/kernel.elf
 seng21213.img: $(BUILD)/boot/boot.bin $(BUILD)/kernel.bin
 	@echo "IMG $@"
 	@cat $(BUILD)/boot/boot.bin $(BUILD)/kernel.bin > $@
+	@dd if=/dev/zero bs=512 count=10000 >> $@ 2>/dev/null || true
 	@echo "Disk image built successfully."
 
 run: seng21213.img

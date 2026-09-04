@@ -43,7 +43,7 @@ init_pm:
     mov es, ax
     mov fs, ax
     mov gs, ax
-    mov esp, 0x90000
+    mov esp, 0x1FFFF0
 
     ; Jump to kernel entry point at 0x10000
     call 0x10000
