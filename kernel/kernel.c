@@ -8,7 +8,8 @@
 #include <mm.h>
 #include <pmm.h>
 #include <syscall.h>
-
+#include <ramdisk.h>
+#include <fs.h>
 static mutex_t     print_lock;
 static semaphore_t sem;
 
@@ -58,6 +59,8 @@ void kernel_main(void) {
     pmm_init();
     mm_init();
     process_init();
+    ramdisk_init();
+    fs_init();
 
     vga_set_color(VGA_COLOR_LIGHT_CYAN, VGA_COLOR_BLACK);
     vga_writeline("+--------------------------------------------------+");
@@ -65,7 +68,7 @@ void kernel_main(void) {
     vga_writeline("|   Stage 1: Process + Scheduler                   |");
     vga_writeline("|   Stage 2: Threads + Mutex + Semaphore           |");
     vga_writeline("|   Stage 3: PMM + Heap Allocator                  |");
-    vga_writeline("|   Stage 4: IDT + Timer IRQ + Syscall INT 0x80    |");
+    vga_writeline("|   Stage 4: RAM Disk + File System (Stage 4)      |");
     vga_writeline("+--------------------------------------------------+");
     vga_set_color(VGA_COLOR_LIGHT_GREY, VGA_COLOR_BLACK);
     vga_writeline("");
@@ -74,6 +77,7 @@ void kernel_main(void) {
     vga_writeline("[ OK ] PMM initialised  (256 frames x 4KB = 1MB pool)");
     vga_writeline("[ OK ] Heap initialised (64KB bump + free-list)");
     vga_writeline("[ OK ] Process table ready");
+    vga_writeline("[ OK ] RAM Disk & File System initialised");
     vga_set_color(VGA_COLOR_LIGHT_GREY, VGA_COLOR_BLACK);
 
     mutex_init(&print_lock);

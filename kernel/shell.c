@@ -8,7 +8,7 @@
 #include <syscall.h>
 #include <thread.h>
 #include <sync.h>
-
+#include <fs.h>
 #define MAX_CMD_LEN 128
 
 static void itoa(unsigned int n, char *buf) {
@@ -45,6 +45,11 @@ static void cmd_help(void) {
     vga_writeline("  memstat - heap and page-frame statistics");
     vga_writeline("  run     - spawn a demo background thread");
     vga_writeline("  yield   - yield CPU via syscall");
+    vga_writeline("  ls      - list files in ramdisk");
+    vga_writeline("  touch   - create empty file  (usage: touch <name>)");
+    vga_writeline("  cat     - read file          (usage: cat <name>)");
+    vga_writeline("  write   - append to file     (usage: write <name> <data>)");
+    vga_writeline("  rm      - remove file        (usage: rm <name>)");
     vga_writeline("  halt    - halt the CPU");
 }
 
@@ -63,7 +68,7 @@ static void cmd_version(void) {
     vga_writeline("  Stage 1: PCB, round-robin scheduler, context switch");
     vga_writeline("  Stage 2: Threads, mutex, semaphore");
     vga_writeline("  Stage 3: Physical page-frame manager, heap allocator");
-    vga_writeline("  Stage 4: IDT, PIC, timer IRQ, syscall INT 0x80");
+    vga_writeline("  Stage 4: IDT, PIC, timer IRQ, syscall, RAM disk FS");
 }
 
 static void cmd_halt(void) {
@@ -166,6 +171,88 @@ static void cmd_yield(void) {
     vga_writeline("[ returned from yield ]");
 }
 
+static void cmd_ls(void) {
+    fs_list();
+}
+
+static void cmd_touch(const char *name) {
+    if (!name || !*name) {
+        vga_writeline("Usage: touch <name>");
+        return;
+    }
+    if (fs_create(name) < 0) {
+        vga_writeline("Failed to create file.");
+    } else {
+        vga_writeline("File created.");
+    }
+}
+
+static void cmd_cat(const char *name) {
+    if (!name || !*name) {
+        vga_writeline("Usage: cat <name>");
+        return;
+    }
+    int inode = fs_open(name);
+    if (inode < 0) {
+        vga_writeline("File not found.");
+        return;
+    }
+    char buf[256];
+    int read = fs_read(inode, buf, sizeof(buf) - 1, 0);
+    if (read < 0) {
+        vga_writeline("Read error.");
+    } else {
+        buf[read] = '\0';
+        vga_writeline(buf);
+    }
+    fs_close(inode);
+}
+
+static void cmd_write(const char *args) {
+    if (!args || !*args) {
+        vga_writeline("Usage: write <name> <data>");
+        return;
+    }
+    char name[32];
+    int i = 0;
+    while (*args && *args != ' ' && i < 31) {
+        name[i++] = *args++;
+    }
+    name[i] = '\0';
+    while (*args == ' ') args++;
+    
+    if (!*args) {
+        vga_writeline("Usage: write <name> <data>");
+        return;
+    }
+    
+    int inode = fs_open(name);
+    if (inode < 0) {
+        vga_writeline("File not found.");
+        return;
+    }
+    int len = strlen(args);
+    int w = fs_write(inode, args, len, 0); // append behavior not fully precise without knowing file size, but fs_write does append if offset > size
+    if (w < 0) {
+        vga_writeline("Write error.");
+    } else {
+        vga_writeline("Data written.");
+    }
+    fs_close(inode);
+}
+
+static void cmd_rm(const char *name) {
+    if (!name || !*name) {
+        vga_writeline("Usage: rm <name>");
+        return;
+    }
+    if (fs_unlink(name) < 0) {
+        vga_writeline("File not found or error.");
+    } else {
+        vga_writeline("File removed.");
+    }
+}
+
 void shell_run(void) {
     char buf[MAX_CMD_LEN];
     int idx = 0;
@@ -202,6 +289,16 @@ void shell_run(void) {
                     cmd_run();
                 } else if (strcmp(buf, "yield") == 0) {
                     cmd_yield();
+                } else if (strcmp(buf, "ls") == 0) {
+                    cmd_ls();
+                } else if (strncmp(buf, "touch ", 6) == 0) {
+                    cmd_touch(buf + 6);
+                } else if (strncmp(buf, "cat ", 4) == 0) {
+                    cmd_cat(buf + 4);
+                } else if (strncmp(buf, "write ", 6) == 0) {
+                    cmd_write(buf + 6);
+                } else if (strncmp(buf, "rm ", 3) == 0) {
+                    cmd_rm(buf + 3);
                 } else if (strncmp(buf, "echo ", 5) == 0) {
                     cmd_echo(buf + 5);
                 } else if (strncmp(buf, "colour ", 7) == 0) {

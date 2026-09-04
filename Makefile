@@ -66,6 +66,14 @@ $(BUILD)/pmm.o: kernel/pmm.c
 	@mkdir -p $(BUILD)
 	@$(CC) $(CFLAGS) -Iinclude -c kernel/pmm.c -o $@
 
+$(BUILD)/ramdisk.o: kernel/ramdisk.c
+	@mkdir -p $(BUILD)
+	@$(CC) $(CFLAGS) -Iinclude -c kernel/ramdisk.c -o $@
+
+$(BUILD)/fs.o: kernel/fs.c
+	@mkdir -p $(BUILD)
+	@$(CC) $(CFLAGS) -Iinclude -c kernel/fs.c -o $@
+
 $(BUILD)/syscall.o: kernel/syscall.c
 	@mkdir -p $(BUILD)
 	@$(CC) $(CFLAGS) -Iinclude -c kernel/syscall.c -o $@
@@ -90,6 +98,8 @@ KERN_OBJS = \
 	$(BUILD)/sync.o \
 	$(BUILD)/mm.o \
 	$(BUILD)/pmm.o \
+	$(BUILD)/ramdisk.o \
+	$(BUILD)/fs.o \
 	$(BUILD)/syscall.o \
 	$(BUILD)/switch.o \
 	$(BUILD)/isr.o
