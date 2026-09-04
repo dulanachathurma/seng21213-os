@@ -11,7 +11,8 @@ else
     CFLAGS = -ffreestanding -O2 -Wall -Wextra
 endif
 
-ASFLAGS = -f bin
+ASFLAGS     = -f bin
+ASFLAGS_ELF = -f elf
 BUILD = build
 
 all: seng21213.img
@@ -41,7 +42,20 @@ $(BUILD)/keyboard.o: drivers/keyboard/keyboard.c
 	@mkdir -p $(BUILD)
 	@$(CC) $(CFLAGS) -Iinclude -c drivers/keyboard/keyboard.c -o $@
 
-KERN_OBJS = $(BUILD)/kernel.o $(BUILD)/shell.o $(BUILD)/string.o $(BUILD)/vga.o $(BUILD)/keyboard.o
+$(BUILD)/process.o: kernel/process.c
+	@mkdir -p $(BUILD)
+	@$(CC) $(CFLAGS) -Iinclude -c kernel/process.c -o $@
+
+$(BUILD)/scheduler.o: kernel/scheduler.c
+	@mkdir -p $(BUILD)
+	@$(CC) $(CFLAGS) -Iinclude -c kernel/scheduler.c -o $@
+
+$(BUILD)/switch.o: boot/switch.asm
+	@mkdir -p $(BUILD)
+	@$(AS) $(ASFLAGS_ELF) boot/switch.asm -o $@
+
+KERN_OBJS = $(BUILD)/kernel.o $(BUILD)/shell.o $(BUILD)/string.o $(BUILD)/vga.o $(BUILD)/keyboard.o \
+            $(BUILD)/process.o $(BUILD)/scheduler.o $(BUILD)/switch.o
 
 $(BUILD)/kernel.elf: $(KERN_OBJS) linker.ld
 	@echo "LD $@"
