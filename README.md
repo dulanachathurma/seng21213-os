@@ -78,8 +78,9 @@ The project's evolution is captured through the following Git tags:
 
 <img width="926" height="581" alt="Screenshot 2026-09-04 at 16 58 34" src="https://github.com/user-attachments/assets/ce3f5896-36e7-4772-934a-ff8ba1f26ddc" />
 
+<img width="926" height="593" alt="Screenshot 2026-09-04 at 16 58 56" src="https://github.com/user-attachments/assets/e9423e56-bece-4273-a64c-32dbd01c7449" />
+
 <img width="1256" height="731" alt="Screenshot 2026-09-04 at 16 57 54" src="https://github.com/user-attachments/assets/a31cdde7-98ae-45ea-bf58-9b48c587325f" />
 
-<img width="926" height="593" alt="Screenshot 2026-09-04 at 16 58 56" src="https://github.com/user-attachments/assets/e9423e56-bece-4273-a64c-32dbd01c7449" />
 
 
