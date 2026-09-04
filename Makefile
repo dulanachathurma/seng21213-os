@@ -62,6 +62,10 @@ $(BUILD)/mm.o: kernel/mm.c
 	@mkdir -p $(BUILD)
 	@$(CC) $(CFLAGS) -Iinclude -c kernel/mm.c -o $@
 
+$(BUILD)/pmm.o: kernel/pmm.c
+	@mkdir -p $(BUILD)
+	@$(CC) $(CFLAGS) -Iinclude -c kernel/pmm.c -o $@
+
 $(BUILD)/syscall.o: kernel/syscall.c
 	@mkdir -p $(BUILD)
 	@$(CC) $(CFLAGS) -Iinclude -c kernel/syscall.c -o $@
@@ -85,6 +89,7 @@ KERN_OBJS = \
 	$(BUILD)/thread.o \
 	$(BUILD)/sync.o \
 	$(BUILD)/mm.o \
+	$(BUILD)/pmm.o \
 	$(BUILD)/syscall.o \
 	$(BUILD)/switch.o \
 	$(BUILD)/isr.o

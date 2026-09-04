@@ -1,5 +1,7 @@
 #include <syscall.h>
 #include <process.h>
+#include <mm.h>
+#include <vga.h>
 #include <io.h>
 
 #define IDT_SIZE 256
@@ -19,6 +21,7 @@ typedef struct {
 
 static idt_entry_t idt[IDT_SIZE];
 static idt_ptr_t   idt_ptr;
+static volatile int timer_ticks = 0;
 
 extern void idt_load(idt_ptr_t *ptr);
 extern void isr_timer(void);
@@ -26,11 +29,11 @@ extern void isr_syscall(void);
 
 static void idt_set(int n, void (*handler)(void)) {
     unsigned int addr = (unsigned int)handler;
-    idt[n].offset_low  = addr & 0xFFFF;
+    idt[n].offset_low  = (unsigned short)(addr & 0xFFFF);
     idt[n].selector    = 0x08;
     idt[n].zero        = 0;
     idt[n].type_attr   = 0x8E;
-    idt[n].offset_high = (addr >> 16) & 0xFFFF;
+    idt[n].offset_high = (unsigned short)((addr >> 16) & 0xFFFF);
 }
 
 static void pic_remap(void) {
@@ -47,16 +50,38 @@ static void pic_remap(void) {
 }
 
 void timer_handler(void) {
-    schedule();
+    timer_ticks++;
+    if (timer_ticks % 20 == 0) {
+        schedule();
+    }
 }
 
-int syscall_handler(int num) {
+int syscall_dispatch(int num) {
+    pcb_t *table = process_get_table();
+
     switch (num) {
         case SYS_YIELD:
             schedule();
             return 0;
+
         case SYS_EXIT:
+            for (int i = 0; i < MAX_PROCESSES; i++) {
+                if (table[i].state == PROCESS_RUNNING) {
+                    table[i].state = PROCESS_DEAD;
+                    break;
+                }
+            }
+            schedule();
             return 0;
+
+        case SYS_GETPID:
+            for (int i = 0; i < MAX_PROCESSES; i++) {
+                if (table[i].state == PROCESS_RUNNING) {
+                    return table[i].pid;
+                }
+            }
+            return -1;
+
         default:
             return -1;
     }
@@ -76,7 +101,7 @@ void syscall_init(void) {
     idt_set(0x20, isr_timer);
     idt_set(0x80, isr_syscall);
 
-    idt_ptr.limit = sizeof(idt) - 1;
+    idt_ptr.limit = (unsigned short)(sizeof(idt) - 1);
     idt_ptr.base  = (unsigned int)&idt;
 
     idt_load(&idt_ptr);
@@ -84,12 +109,14 @@ void syscall_init(void) {
     __asm__ volatile ("sti");
 }
 
-int syscall(int num) {
+int syscall(int num, unsigned int arg) {
     int ret;
+    (void)arg;
     __asm__ volatile (
         "int $0x80"
         : "=a"(ret)
         : "a"(num)
+        : "memory"
     );
     return ret;
 }
