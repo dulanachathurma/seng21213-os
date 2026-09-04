@@ -50,12 +50,44 @@ $(BUILD)/scheduler.o: kernel/scheduler.c
 	@mkdir -p $(BUILD)
 	@$(CC) $(CFLAGS) -Iinclude -c kernel/scheduler.c -o $@
 
+$(BUILD)/thread.o: kernel/thread.c
+	@mkdir -p $(BUILD)
+	@$(CC) $(CFLAGS) -Iinclude -c kernel/thread.c -o $@
+
+$(BUILD)/sync.o: kernel/sync.c
+	@mkdir -p $(BUILD)
+	@$(CC) $(CFLAGS) -Iinclude -c kernel/sync.c -o $@
+
+$(BUILD)/mm.o: kernel/mm.c
+	@mkdir -p $(BUILD)
+	@$(CC) $(CFLAGS) -Iinclude -c kernel/mm.c -o $@
+
+$(BUILD)/syscall.o: kernel/syscall.c
+	@mkdir -p $(BUILD)
+	@$(CC) $(CFLAGS) -Iinclude -c kernel/syscall.c -o $@
+
 $(BUILD)/switch.o: boot/switch.asm
 	@mkdir -p $(BUILD)
 	@$(AS) $(ASFLAGS_ELF) boot/switch.asm -o $@
 
-KERN_OBJS = $(BUILD)/kernel.o $(BUILD)/shell.o $(BUILD)/string.o $(BUILD)/vga.o $(BUILD)/keyboard.o \
-            $(BUILD)/process.o $(BUILD)/scheduler.o $(BUILD)/switch.o
+$(BUILD)/isr.o: boot/isr.asm
+	@mkdir -p $(BUILD)
+	@$(AS) $(ASFLAGS_ELF) boot/isr.asm -o $@
+
+KERN_OBJS = \
+	$(BUILD)/kernel.o \
+	$(BUILD)/shell.o \
+	$(BUILD)/string.o \
+	$(BUILD)/vga.o \
+	$(BUILD)/keyboard.o \
+	$(BUILD)/process.o \
+	$(BUILD)/scheduler.o \
+	$(BUILD)/thread.o \
+	$(BUILD)/sync.o \
+	$(BUILD)/mm.o \
+	$(BUILD)/syscall.o \
+	$(BUILD)/switch.o \
+	$(BUILD)/isr.o
 
 $(BUILD)/kernel.elf: $(KERN_OBJS) linker.ld
 	@echo "LD $@"

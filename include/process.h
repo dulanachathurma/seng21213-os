@@ -14,14 +14,16 @@ typedef enum {
 
 typedef struct {
     int              pid;
+    int              tid;
     process_state_t  state;
     unsigned int     esp;
     unsigned char    stack[STACK_SIZE];
 } pcb_t;
 
-void process_init(void);
-int  process_create(void (*entry)(void));
-void schedule(void);
+void   process_init(void);
+int    process_create(void (*entry)(void));
+pcb_t *process_get_table(void);
+void   schedule(void);
 
 extern void switch_to(unsigned int *old_esp, unsigned int new_esp);
 

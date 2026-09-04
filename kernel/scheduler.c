@@ -1,13 +1,11 @@
 #include <process.h>
 
-static int current_pid_index = -1;
-
-extern pcb_t *process_get_table(void);
+static int current_idx = -1;
 
 void schedule(void) {
     pcb_t *table = process_get_table();
 
-    int start = (current_pid_index + 1) % MAX_PROCESSES;
+    int start = (current_idx + 1) % MAX_PROCESSES;
     int next  = -1;
 
     for (int i = 0; i < MAX_PROCESSES; i++) {
@@ -22,8 +20,8 @@ void schedule(void) {
         return;
     }
 
-    int prev = current_pid_index;
-    current_pid_index = next;
+    int prev = current_idx;
+    current_idx = next;
 
     if (prev != -1 && table[prev].state == PROCESS_RUNNING) {
         table[prev].state = PROCESS_READY;
